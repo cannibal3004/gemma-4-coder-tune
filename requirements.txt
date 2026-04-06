@@ -7,7 +7,7 @@
 unsloth[cu124-torch260] @ git+https://github.com/unslothai/unsloth.git
 unsloth_zoo
 torchao<0.10.0          # torchao 0.10+ requires torch>=2.11, incompatible with cu124/torch 2.6
-transformers>=4.51.0,<4.52.0  # pin to avoid pulling in torchao 0.10+ transitively
+transformers>=4.52.0    # gemma4 architecture support added in 4.52
 datasets>=3.0.0
 trl>=0.15.0
 peft>=0.14.0
