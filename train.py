@@ -11,6 +11,7 @@ import unsloth  # must be first — patches transformers/trl before they're impo
 
 import argparse
 import os
+from typing import Optional
 
 import yaml
 from transformers import TrainingArguments
@@ -138,8 +139,6 @@ def main(config_path: str, resume_from: Optional[str] = None):
 
 
 if __name__ == "__main__":
-    from typing import Optional
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="config.yaml")
     parser.add_argument("--resume-from-checkpoint", default=None,
