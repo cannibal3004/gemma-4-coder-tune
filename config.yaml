@@ -45,6 +45,11 @@ pilot:
   enabled: true               # set false to train on full dataset
   samples_per_dataset: 20000  # ~60K total for a pilot run
 
+mixing:
+  # first_exhausted: stops when the smallest dataset runs out (~14hr full run)
+  # all_exhausted:  runs until every dataset is fully consumed (weeks — not practical)
+  stopping_strategy: "first_exhausted"
+
 training:
   output_dir: "./outputs"
   per_device_train_batch_size: 2

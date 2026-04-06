@@ -226,11 +226,12 @@ def build_dataset(config_path: str = "config.yaml") -> Dataset:
     for ds_cfg, p in zip(cfg["datasets"], probs):
         print(f"  {ds_cfg['id']}: {p:.1%}")
 
+    stopping_strategy = cfg.get("mixing", {}).get("stopping_strategy", "first_exhausted")
     mixed = interleave_datasets(
         datasets_out,
         probabilities=probs,
         seed=42,
-        stopping_strategy="all_exhausted",
+        stopping_strategy=stopping_strategy,
     )
 
     mixed = mixed.shuffle(seed=42)
