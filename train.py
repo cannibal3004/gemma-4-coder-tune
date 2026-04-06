@@ -13,6 +13,7 @@ import argparse
 import os
 from typing import Optional
 
+import torch
 import yaml
 from transformers import TrainingArguments
 from trl import SFTTrainer
@@ -26,12 +27,15 @@ def load_model_and_tokenizer(cfg: dict):
     model_cfg = cfg["model"]
     lora_cfg = cfg["lora"]
 
+    dtype_map = {"bfloat16": torch.bfloat16, "float16": torch.float16, "float32": torch.float32}
+    dtype = dtype_map.get(model_cfg["dtype"], torch.bfloat16)
+
     print(f"Loading model: {model_cfg['name']}")
     model, tokenizer = FastModel.from_pretrained(
         model_name=model_cfg["name"],
         max_seq_length=model_cfg["max_seq_length"],
         load_in_4bit=model_cfg["load_in_4bit"],
-        dtype=model_cfg["dtype"],
+        dtype=dtype,
     )
 
     model = FastModel.get_peft_model(
