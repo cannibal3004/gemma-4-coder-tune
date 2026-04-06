@@ -1,22 +1,26 @@
 """
-Fine-tune unsloth/gemma-4-26B-A4B with QLoRA on the mixed dataset.
+Fine-tune gemma-4-26B-A4B with QLoRA using the standard HF stack.
+(ROCm-compatible — no unsloth dependency)
 
 Usage:
-    python train.py                      # uses config.yaml
+    python train.py
     python train.py --config config.yaml
     python train.py --resume-from-checkpoint ./outputs/checkpoint-500
 """
 
-import unsloth  # must be first — patches transformers/trl before they're imported
-
 import argparse
 import os
+from typing import Optional
 
+import torch
 import yaml
-from transformers import TrainingArguments
+from peft import LoraConfig, TaskType, get_peft_model
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    TrainingArguments,
+)
 from trl import SFTTrainer
-from unsloth import FastModel
-from unsloth.chat_templates import get_chat_template, train_on_responses_only
 
 from prepare_data import build_dataset
 
@@ -26,30 +30,35 @@ def load_model_and_tokenizer(cfg: dict):
     lora_cfg = cfg["lora"]
 
     print(f"Loading model: {model_cfg['name']}")
-    model, tokenizer = FastModel.from_pretrained(
-        model_name=model_cfg["name"],
-        max_seq_length=model_cfg["max_seq_length"],
-        load_in_4bit=model_cfg["load_in_4bit"],
-        dtype=model_cfg["dtype"],
+    model = AutoModelForCausalLM.from_pretrained(
+        model_cfg["name"],
+        dtype=torch.bfloat16,
+        device_map="auto",
+        attn_implementation="eager",
     )
 
-    model = FastModel.get_peft_model(
-        model,
+    lora_config = LoraConfig(
         r=lora_cfg["r"],
         lora_alpha=lora_cfg["alpha"],
         lora_dropout=lora_cfg["dropout"],
         target_modules=lora_cfg["target_modules"],
         bias=lora_cfg["bias"],
-        use_gradient_checkpointing=lora_cfg["use_gradient_checkpointing"],
+        task_type=TaskType.CAUSAL_LM,
         use_rslora=lora_cfg["use_rslora"],
-        random_state=lora_cfg["random_state"],
     )
+    model = get_peft_model(model, lora_config)
+    model.print_trainable_parameters()
 
-    tokenizer = get_chat_template(tokenizer, chat_template="gemma-4")
+    print(f"Loading tokenizer: {model_cfg['name']}")
+    tokenizer = AutoTokenizer.from_pretrained(model_cfg["name"])
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+        tokenizer.pad_token_id = tokenizer.eos_token_id
+
     return model, tokenizer
 
 
-def formatting_func(examples, tokenizer, max_seq_length):
+def formatting_func(examples, tokenizer):
     texts = []
     for messages in examples["messages"]:
         text = tokenizer.apply_chat_template(
@@ -70,24 +79,23 @@ def main(config_path: str, resume_from: Optional[str] = None):
     print("\nBuilding dataset...")
     dataset = build_dataset(config_path)
 
-    train_cfg = cfg["training"]
-
-    # Convert messages -> text using the model's chat template
     max_seq = cfg["model"]["max_seq_length"]
     dataset = dataset.map(
-        lambda ex: formatting_func(ex, tokenizer, max_seq),
+        lambda ex: formatting_func(ex, tokenizer),
         batched=True,
         batch_size=500,
-        num_proc=1,  # tokenizer is not multiprocess-safe
+        num_proc=1,
         remove_columns=["messages"],
     )
+
+    train_cfg = cfg["training"]
 
     training_args = TrainingArguments(
         output_dir=train_cfg["output_dir"],
         per_device_train_batch_size=train_cfg["per_device_train_batch_size"],
         gradient_accumulation_steps=train_cfg["gradient_accumulation_steps"],
         warmup_steps=train_cfg["warmup_steps"],
-        max_steps=train_cfg["max_steps"],           # -1 means use num_train_epochs
+        max_steps=train_cfg["max_steps"],
         num_train_epochs=train_cfg["num_train_epochs"],
         learning_rate=train_cfg["learning_rate"],
         weight_decay=train_cfg["weight_decay"],
@@ -99,9 +107,10 @@ def main(config_path: str, resume_from: Optional[str] = None):
         save_total_limit=train_cfg["save_total_limit"],
         seed=train_cfg["seed"],
         report_to=train_cfg["report_to"],
+        gradient_checkpointing=True,
+        gradient_checkpointing_kwargs={"use_reentrant": False},
         dataloader_num_workers=4,
         remove_unused_columns=False,
-        # Resume support
         resume_from_checkpoint=resume_from,
     )
 
@@ -112,25 +121,16 @@ def main(config_path: str, resume_from: Optional[str] = None):
         dataset_text_field="text",
         max_seq_length=max_seq,
         dataset_num_proc=2,
-        packing=True,           # packs short samples together — important for efficiency
+        packing=True,
         args=training_args,
     )
 
-    # Only compute loss on assistant turns, not on user/system prompts.
-    # This is critical — without it the model learns to predict the questions too.
-    trainer = train_on_responses_only(
-        trainer,
-        instruction_part="<start_of_turn>user\n",
-        response_part="<start_of_turn>model\n",
-    )
-
-    print(f"\nEffective batch size: {train_cfg['per_device_train_batch_size'] * train_cfg['gradient_accumulation_steps']}")
-    print(f"Max seq length: {max_seq}")
-    print(f"Max steps: {train_cfg['max_steps']} (use -1 for epoch-based)\n")
+    print(f"Effective batch size: {train_cfg['per_device_train_batch_size'] * train_cfg['gradient_accumulation_steps']}")
+    print(f"Trainable parameters: see above")
+    print(f"Max seq length: {max_seq}\n")
 
     trainer.train(resume_from_checkpoint=resume_from)
 
-    # Save LoRA adapters
     adapter_path = os.path.join(train_cfg["output_dir"], "lora_adapters")
     model.save_pretrained(adapter_path)
     tokenizer.save_pretrained(adapter_path)
@@ -138,12 +138,9 @@ def main(config_path: str, resume_from: Optional[str] = None):
 
 
 if __name__ == "__main__":
-    from typing import Optional
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="config.yaml")
-    parser.add_argument("--resume-from-checkpoint", default=None,
-                        help="Path to a checkpoint directory to resume from")
+    parser.add_argument("--resume-from-checkpoint", default=None)
     args = parser.parse_args()
 
     main(args.config, args.resume_from_checkpoint)
