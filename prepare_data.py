@@ -180,9 +180,9 @@ def load_and_format(
             results.append(msgs)
         return {"messages": results}
 
-    ds = ds.map(convert, batched=True, batch_size=1000, num_proc=4,
+    ds = ds.map(convert, batched=True, batch_size=1000, num_proc=2,
                 remove_columns=ds.column_names)
-    ds = ds.filter(lambda x: x["messages"] is not None)
+    ds = ds.filter(lambda x: x["messages"] is not None, num_proc=2)
 
     print(f"    -> {len(ds):,} samples after formatting")
     return ds, weight
@@ -235,6 +235,11 @@ def build_dataset(config_path: str = "config.yaml") -> Dataset:
 
     mixed = mixed.shuffle(seed=42)
     print(f"\nTotal mixed dataset: {len(mixed):,} samples")
+
+    # Clean up intermediate cache files from the map/filter steps
+    for ds in datasets_out:
+        ds.cleanup_cache_files()
+
     return mixed
 
 

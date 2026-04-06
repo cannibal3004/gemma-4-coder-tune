@@ -16,3 +16,5 @@ sed -i 's|output_dir: ".*"|output_dir: "/workspace/outputs"|' config.yaml
 echo "HF_HOME=$HF_HOME"
 echo "Outputs -> /workspace/outputs"
 echo "Ready."
+echo ""
+echo "Monitor disk: watch -n10 'df -h /workspace && du -sh /workspace/*/'"
