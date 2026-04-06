@@ -1,0 +1,72 @@
+model:
+  name: "unsloth/gemma-4-26B-A4B"
+  max_seq_length: 8192        # increase to 32768+ if you have headroom; CoderForge goes up to 128K
+  load_in_4bit: true
+  dtype: "bfloat16"
+
+lora:
+  r: 32                       # rank — increase to 64 for more capacity, at cost of memory
+  alpha: 64                   # typically 2x r
+  dropout: 0.0
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+  bias: "none"
+  use_gradient_checkpointing: "unsloth"
+  use_rslora: true            # rank-stabilized LoRA — better than standard LoRA at higher ranks
+  random_state: 42
+
+datasets:
+  # Sampling weights control effective mix — these are relative, not percentages
+  # Higher weight = more samples drawn from that dataset per batch
+  - id: "Agent-Ark/Toucan-1.5M"
+    config: "SFT"
+    split: "train"
+    weight: 1.5
+    format: "toucan"
+
+  - id: "togethercomputer/CoderForge-Preview"
+    config: "trajectories"
+    split: "filtered_reward1"  # 155K quality-filtered passing trajectories
+    weight: 4.0               # oversample — it's the smallest but most relevant
+    format: "coderforge"
+
+  - id: "nvidia/OpenCodeReasoning-2"
+    split: "python"
+    weight: 0.5               # undersample — large and competitive-programming-skewed
+    format: "opencodereasoning"
+
+pilot:
+  enabled: true               # set false to train on full dataset
+  samples_per_dataset: 20000  # ~60K total for a pilot run
+
+training:
+  output_dir: "./outputs"
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 8   # effective batch = 16
+  warmup_steps: 100
+  max_steps: 5000             # for pilot; set to -1 and use num_train_epochs for full run
+  num_train_epochs: 1         # used when max_steps: -1
+  learning_rate: 2.0e-4
+  weight_decay: 0.01
+  lr_scheduler_type: "cosine"
+  fp16: false
+  bf16: true
+  logging_steps: 25
+  save_steps: 500
+  save_total_limit: 3
+  seed: 42
+  report_to: "none"           # set to "wandb" if you want experiment tracking
+
+quantize:
+  output_dir: "./outputs/quantized"
+  methods:
+    - "q4_k_m"                # best quality/size tradeoff for deployment
+    - "q8_0"                  # near-lossless, larger
+  push_to_hub: false
+  hub_model_id: ""            # e.g. "yourname/gemma-4-26B-opencode"

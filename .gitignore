@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.pyo
+unsloth_compiled_cache/
+outputs/
+.cache/
+*.gguf
