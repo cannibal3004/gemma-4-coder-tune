@@ -18,11 +18,11 @@ sed -i 's|output_dir: ".*"|output_dir: "/workspace/outputs"|' config.yaml
 CONDA_DIR=/workspace/miniconda
 
 if [ ! -d "$CONDA_DIR" ]; then
-    echo "Installing miniconda to $CONDA_DIR..."
-    wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh
-    bash /tmp/miniconda.sh -b -p "$CONDA_DIR"
-    rm /tmp/miniconda.sh
-    echo "Miniconda installed."
+    echo "Installing miniforge to $CONDA_DIR..."
+    wget -q https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -O /tmp/miniforge.sh
+    bash /tmp/miniforge.sh -b -p "$CONDA_DIR"
+    rm /tmp/miniforge.sh
+    echo "Miniforge installed."
 fi
 
 export PATH="$CONDA_DIR/bin:$PATH"
