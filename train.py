@@ -57,12 +57,21 @@ def load_model_and_tokenizer(cfg: dict):
 def formatting_func(examples, tokenizer, max_seq_length):
     texts = []
     for messages in examples["messages"]:
-        text = tokenizer.apply_chat_template(
-            messages,
-            tokenize=False,
-            add_generation_prompt=False,
-        )
-        texts.append(text)
+        try:
+            # Strip tool_calls/tool_call_id fields — Gemma4 chat template
+            # doesn't support OpenAI-style tool call dicts in all versions
+            clean = []
+            for m in messages:
+                msg = {"role": m["role"], "content": m.get("content") or ""}
+                clean.append(msg)
+            text = tokenizer.apply_chat_template(
+                clean,
+                tokenize=False,
+                add_generation_prompt=False,
+            )
+            texts.append(text)
+        except Exception:
+            texts.append("")   # will be filtered out below
     return {"text": texts}
 
 
@@ -83,9 +92,10 @@ def main(config_path: str, resume_from: Optional[str] = None):
         lambda ex: formatting_func(ex, tokenizer, max_seq),
         batched=True,
         batch_size=500,
-        num_proc=1,  # tokenizer is not multiprocess-safe
+        num_proc=None,  # main process only — tokenizer not multiprocess-safe
         remove_columns=["messages"],
     )
+    dataset = dataset.filter(lambda x: len(x["text"]) > 0)
 
     training_args = TrainingArguments(
         output_dir=train_cfg["output_dir"],
