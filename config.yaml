@@ -68,5 +68,5 @@ quantize:
   methods:
     - "q4_k_m"                # best quality/size tradeoff for deployment
     - "q8_0"                  # near-lossless, larger
-  push_to_hub: false
-  hub_model_id: ""            # e.g. "yourname/gemma-4-26B-opencode"
+  push_to_hub: true
+  hub_model_id: "cannibal3004/gemma-4-26B-opencode"
