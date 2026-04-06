@@ -14,8 +14,9 @@ mkdir -p /workspace/outputs
 # Point config.yaml output dir at /workspace
 sed -i 's|output_dir: ".*"|output_dir: "/workspace/outputs"|' config.yaml
 
-# --- Miniconda (installs once, persists in /workspace) ---
-CONDA_DIR=/workspace/miniconda
+# --- Miniforge (local container disk — fast for small files) ---
+# NOTE: this reinstalls on pod restart, but takes ~2min on local NVMe vs hours on /workspace
+CONDA_DIR=/root/miniforge
 
 if [ ! -d "$CONDA_DIR" ]; then
     echo "Installing miniforge to $CONDA_DIR..."
