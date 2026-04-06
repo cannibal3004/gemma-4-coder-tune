@@ -18,7 +18,7 @@ import yaml
 from transformers import TrainingArguments
 from trl import SFTTrainer
 from unsloth import FastModel
-from unsloth.chat_templates import get_chat_template, train_on_responses_only
+from unsloth.chat_templates import get_chat_template
 
 from prepare_data import build_dataset
 
@@ -129,14 +129,6 @@ def main(config_path: str, resume_from: Optional[str] = None):
         dataset_num_proc=2,
         packing=True,           # packs short samples together — important for efficiency
         args=training_args,
-    )
-
-    # Only compute loss on assistant turns, not on user/system prompts.
-    # This is critical — without it the model learns to predict the questions too.
-    trainer = train_on_responses_only(
-        trainer,
-        instruction_part="<start_of_turn>user\n",
-        response_part="<start_of_turn>model\n",
     )
 
     print(f"\nEffective batch size: {train_cfg['per_device_train_batch_size'] * train_cfg['gradient_accumulation_steps']}")
