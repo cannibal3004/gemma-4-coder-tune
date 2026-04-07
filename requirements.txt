@@ -4,7 +4,7 @@
 # Then: uv pip install -r requirements.txt
 unsloth @ git+https://github.com/unslothai/unsloth.git@2026.4.4
 unsloth_zoo==2026.4.3
-torchvision==0.21.0         # must match torch version installed by setup script
+torchvision==0.21.0+cu126   # must match torch version installed by setup script
 torchao==0.9.0              # 0.10+ requires torch>=2.11
 transformers>=4.52.0,<5.0.0
 datasets>=3.0.0
