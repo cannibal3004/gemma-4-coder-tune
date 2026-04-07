@@ -43,6 +43,7 @@ if ! python -c "import unsloth" 2>/dev/null; then
     pip install -q uv --cache-dir /tmp/pip-cache
     uv pip install torch==2.6.0+cu126 torchvision==0.21.0+cu126 torchaudio==2.6.0+cu126 --index-url https://download.pytorch.org/whl/cu126
     uv pip install -r requirements.txt
+    uv pip install "torchao==0.9.0" --reinstall  # force downgrade after unsloth_zoo pulls in 0.13+
     echo "Deps installed."
 fi
 
