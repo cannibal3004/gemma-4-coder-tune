@@ -40,8 +40,9 @@ conda activate finetune
 # --- Python deps (skip if already installed) ---
 if ! python -c "import unsloth" 2>/dev/null; then
     echo "Installing Python deps..."
-    pip install -q torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 --cache-dir /tmp/pip-cache
-    pip install -q -r requirements.txt --cache-dir /tmp/pip-cache
+    pip install -q uv --cache-dir /tmp/pip-cache
+    uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+    uv pip install -r requirements.txt
     echo "Deps installed."
 fi
 

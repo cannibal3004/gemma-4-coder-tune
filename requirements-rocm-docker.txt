@@ -1,0 +1,30 @@
+# ROCm Docker requirements
+# Use with the official ROCm PyTorch image which provides torch/torchao:
+#   docker pull rocm/pytorch:latest
+#   docker run -it --device=/dev/kfd --device=/dev/dri \
+#       --group-add video --group-add render \
+#       -v ~/finetune:/workspace/finetune \
+#       rocm/pytorch:latest bash
+#
+# Inside container:
+#   uv pip install -r requirements-rocm-docker.txt
+#   python -c "import torch; torch.zeros(1).cuda(); print('GPU ok')"
+#
+# Training: use train_hf_rocm.py (no unsloth dependency)
+#   python train_hf_rocm.py
+#
+# Note: unsloth[rocm] is listed but optional — only add it if the basic
+# GPU test passes. unsloth has known issues with gfx1151 Strix Halo.
+# unsloth[rocm] @ git+https://github.com/unslothai/unsloth.git
+transformers>=4.52.0
+datasets>=3.0.0
+trl>=0.15.0
+peft>=0.14.0
+accelerate>=1.3.0
+sentencepiece
+protobuf
+einops
+scipy
+ninja
+packaging
+wheel
