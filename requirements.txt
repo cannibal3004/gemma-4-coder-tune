@@ -6,7 +6,7 @@ unsloth @ git+https://github.com/unslothai/unsloth.git@f801e59c29db7b4028297ef98
 unsloth_zoo
 torchao==0.9.0              # must be pinned AFTER unsloth_zoo — zoo pulls in 0.13+ which needs torch>=2.11
 torchvision==0.21.0+cu126   # must match torch version installed by setup script
-transformers==4.55.4        # 4.52-4.55 has gemma4 support; 4.57+ broke it
+transformers==5.5.0         # exact version from working training run
 datasets>=3.0.0
 trl>=0.15.0
 peft>=0.14.0
