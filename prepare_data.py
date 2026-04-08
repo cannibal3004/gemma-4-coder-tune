@@ -8,6 +8,7 @@ Run standalone to preview samples:
 
 import argparse
 import json
+import re
 import random
 from typing import Optional
 
@@ -128,6 +129,8 @@ def _clean_latex(text: str) -> str:
     }
     for latex, unicode_char in replacements.items():
         text = text.replace(latex, unicode_char)
+    # Strip remaining inline math wrappers like $N$, $k$, $O(n^2)$ — keep the inner text
+    text = re.sub(r'\$([^$\n]{1,40})\$', r'\1', text)
     return text
 
 
