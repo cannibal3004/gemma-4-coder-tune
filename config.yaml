@@ -1,6 +1,6 @@
 model:
   name: "unsloth/gemma-4-26B-A4B"
-  max_seq_length: 8192        # increase to 32768+ if you have headroom; CoderForge goes up to 128K
+  max_seq_length: 32768       # 32K covers most real coding sessions; CoderForge goes up to 128K
   load_in_4bit: true
   dtype: "bfloat16"
 
