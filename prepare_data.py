@@ -92,6 +92,45 @@ def _format_coderforge(sample: dict) -> Optional[list[dict]]:
     return out if len(out) >= 2 else None
 
 
+def _clean_latex(text: str) -> str:
+    """Replace common LaTeX symbols with their Unicode equivalents."""
+    replacements = {
+        r"$\rightarrow$": "→",
+        r"$\leftarrow$": "←",
+        r"$\leftrightarrow$": "↔",
+        r"$\Rightarrow$": "⇒",
+        r"$\Leftarrow$": "⇐",
+        r"$\Leftrightarrow$": "⇔",
+        r"$\leq$": "≤",
+        r"$\geq$": "≥",
+        r"$\neq$": "≠",
+        r"$\approx$": "≈",
+        r"$\times$": "×",
+        r"$\cdot$": "·",
+        r"$\infty$": "∞",
+        r"$\in$": "∈",
+        r"$\notin$": "∉",
+        r"$\subset$": "⊂",
+        r"$\subseteq$": "⊆",
+        r"$\cup$": "∪",
+        r"$\cap$": "∩",
+        r"$\emptyset$": "∅",
+        r"$\alpha$": "α",
+        r"$\beta$": "β",
+        r"$\gamma$": "γ",
+        r"$\delta$": "δ",
+        r"$\epsilon$": "ε",
+        r"$\pi$": "π",
+        r"$\sigma$": "σ",
+        r"$\sum$": "∑",
+        r"$\prod$": "∏",
+        r"$\sqrt{}$": "√",
+    }
+    for latex, unicode_char in replacements.items():
+        text = text.replace(latex, unicode_char)
+    return text
+
+
 def _format_opencodereasoning(sample: dict) -> Optional[list[dict]]:
     """
     OpenCodeReasoning-2 schema:
@@ -108,10 +147,10 @@ def _format_opencodereasoning(sample: dict) -> Optional[list[dict]]:
     if not sample.get("judgement", False):
         return None
 
-    question = sample.get("question", "").strip()
-    initial = sample.get("r1_generation", "").strip()
-    critique = sample.get("qwq_critique", "").strip()
-    solution = sample.get("solution", "").strip()
+    question = _clean_latex(sample.get("question", "").strip())
+    initial = _clean_latex(sample.get("r1_generation", "").strip())
+    critique = _clean_latex(sample.get("qwq_critique", "").strip())
+    solution = _clean_latex(sample.get("solution", "").strip())
 
     if not question or not solution:
         return None
