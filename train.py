@@ -18,7 +18,7 @@ import yaml
 from transformers import TrainingArguments
 from trl import SFTTrainer
 from unsloth import FastModel
-from unsloth.chat_templates import get_chat_template
+from unsloth.chat_templates import get_chat_template, train_on_responses_only
 
 from prepare_data import build_dataset
 
@@ -120,6 +120,8 @@ def main(config_path: str, resume_from: Optional[str] = None):
         resume_from_checkpoint=resume_from,
     )
 
+    packing = train_cfg.get("packing", False)
+
     trainer = SFTTrainer(
         model=model,
         tokenizer=tokenizer,
@@ -127,9 +129,20 @@ def main(config_path: str, resume_from: Optional[str] = None):
         dataset_text_field="text",
         max_seq_length=max_seq,
         dataset_num_proc=2,
-        packing=True,           # packs short samples together — important for efficiency
+        packing=packing,
         args=training_args,
     )
+
+    if not packing:
+        # Only compute loss on assistant turns — requires packing=False
+        trainer = train_on_responses_only(
+            trainer,
+            instruction_part="<start_of_turn>user\n",
+            response_part="<start_of_turn>model\n",
+        )
+        print("Response-only training enabled (packing=False)")
+    else:
+        print("Packing enabled — training on all tokens")
 
     print(f"\nEffective batch size: {train_cfg['per_device_train_batch_size'] * train_cfg['gradient_accumulation_steps']}")
     print(f"Max seq length: {max_seq}")

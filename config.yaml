@@ -67,6 +67,8 @@ training:
   save_total_limit: 3
   seed: 42
   report_to: "none"           # set to "wandb" if you want experiment tracking
+  packing: false              # false enables train_on_responses_only (recommended for full run)
+                              # true is faster (~30%) but model may learn to stop mid-response
 
 quantize:
   output_dir: "./outputs/quantized"
